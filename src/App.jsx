@@ -1319,12 +1319,13 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-gray-800 selection:bg-red-200">
-      <div className="w-16 sm:w-20 landscape:w-20 lg:w-64 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 z-20">
+      {/* =========== SIDEBAR =========== */}
+      <div className="w-16 md:w-60 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 z-20">
 
-        {/* BRAND & LOGO SIDEBAR */}
-        <div className="h-16 landscape:h-14 lg:h-24 flex items-center justify-center lg:justify-start lg:px-5 border-b border-gray-100">
-          <div className="flex items-center gap-3 w-full">
-            <div className="w-9 h-9 landscape:w-8 landscape:h-8 lg:w-14 lg:h-14 bg-white rounded-xl flex items-center justify-center shadow border border-gray-100 overflow-hidden shrink-0">
+        {/* BRAND & LOGO */}
+        <div className="h-16 md:h-20 flex items-center justify-center md:justify-start md:px-4 border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 md:w-10 md:h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100 overflow-hidden shrink-0">
               <img
                 src="/logo.png"
                 alt="Logo Mama Zio"
@@ -1335,15 +1336,16 @@ export default function App() {
                 }}
               />
             </div>
-            <div className="hidden lg:flex flex-col overflow-hidden">
-              <h1 className="font-black text-[17px] tracking-tight leading-tight text-gray-900">DAPUR PEDAS</h1>
-              <p className="text-[11px] text-red-600 font-extrabold tracking-[0.2em] uppercase">Mama Zio</p>
+            <div className="hidden md:flex flex-col min-w-0">
+              <h1 className="font-black text-[15px] tracking-tight leading-tight text-gray-900 whitespace-nowrap">DAPUR PEDAS</h1>
+              <p className="text-[10px] text-red-600 font-extrabold tracking-[0.18em] uppercase">Mama Zio</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 py-3 landscape:py-2 lg:py-6 px-2 lg:px-4 space-y-0.5 lg:space-y-1 overflow-y-auto">
-          <p className="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 hidden lg:block">Menu Utama</p>
+        {/* NAV MENU */}
+        <nav className="flex-1 py-3 md:py-4 px-2 md:px-3 space-y-0.5 overflow-y-auto">
+          <p className="px-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2 hidden md:block">Menu Utama</p>
           {[
             { id: 'dashboard', icon: Home, label: 'Dashboard' },
             { id: 'pos', icon: LayoutDashboard, label: 'Kasir (POS)' },
@@ -1354,64 +1356,81 @@ export default function App() {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 p-2 landscape:p-1.5 lg:p-3 rounded-lg transition-colors font-medium text-sm ${activeTab === item.id ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+              title={item.label}
+              className={`w-full flex items-center justify-center md:justify-start gap-3 px-2 py-2.5 md:px-3 rounded-xl transition-all group ${
+                activeTab === item.id
+                  ? 'bg-red-50 text-red-700'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+              }`}
             >
-              <item.icon size={18} className={`shrink-0 ${activeTab === item.id ? 'text-red-600' : 'text-gray-400'}`} />
-              <span className="hidden lg:block text-sm">{item.label}</span>
+              <item.icon
+                size={19}
+                className={`shrink-0 transition-colors ${
+                  activeTab === item.id ? 'text-red-600' : 'text-gray-400 group-hover:text-gray-600'
+                }`}
+              />
+              <span className="hidden md:block text-[13px] font-semibold truncate">{item.label}</span>
+              {activeTab === item.id && (
+                <span className="hidden md:block ml-auto w-1.5 h-1.5 bg-red-500 rounded-full shrink-0" />
+              )}
             </button>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-100 rounded-full border border-gray-200 overflow-hidden shrink-0">
+        {/* PROFILE FOOTER */}
+        <div className="p-3 md:p-4 border-t border-gray-100 shrink-0">
+          <div className="flex items-center justify-center md:justify-start gap-2.5">
+            <div className="w-8 h-8 bg-gray-100 rounded-full border border-gray-200 overflow-hidden shrink-0">
               <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=MamaZio" alt="Avatar" className="w-full h-full object-cover" />
             </div>
-            <div className="hidden lg:block overflow-hidden">
-              <p className="text-sm font-bold text-gray-900 truncate">Mama'e Zio</p>
-              <p className="text-xs text-gray-500 truncate">Owner</p>
+            <div className="hidden md:block min-w-0">
+              <p className="text-[13px] font-bold text-gray-900 truncate">Mama'e Zio</p>
+              <p className="text-[11px] text-gray-500 truncate">Owner</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-        <header className="h-16 landscape:h-12 lg:h-24 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 z-10 sticky top-0">
-          <h2 className="text-base lg:text-xl font-bold text-gray-800 capitalize hidden sm:block landscape:block">
-            {activeTab === 'dashboard' ? 'Dashboard Utama' : activeTab === 'pos' ? 'Sistem Kasir' : activeTab === 'purchase' ? 'Pencatatan Belanja' : activeTab === 'menu' ? 'Manajemen Menu' : 'Buku Jurnal Keuangan'}
-          </h2>
+      {/* =========== MAIN CONTENT =========== */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
+        {/* HEADER */}
+        <header className="h-16 md:h-20 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 z-10 sticky top-0 shrink-0">
 
-          {/* LOGO & NAMA BRAND — hanya tampil di portrait mobile (sidebar tersembunyi) */}
-          <div className="flex items-center gap-2 sm:hidden landscape:hidden">
-            <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow border border-gray-100 overflow-hidden shrink-0">
-              <img
-                src="/logo.png"
-                alt="Logo"
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://api.dicebear.com/7.x/initials/svg?seed=DP&backgroundColor=b91c1c";
-                }}
-              />
+          {/* KIRI: Brand (portrait mobile) atau Judul halaman (md+) */}
+          <div className="flex items-center gap-3">
+            {/* Brand — portrait mobile saja */}
+            <div className="flex items-center gap-2 md:hidden">
+              <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100 overflow-hidden shrink-0">
+                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain"
+                  onError={(e) => { e.target.onerror = null; e.target.src = "https://api.dicebear.com/7.x/initials/svg?seed=DP&backgroundColor=b91c1c"; }}
+                />
+              </div>
+              <div className="flex flex-col leading-tight">
+                <span className="text-[13px] font-black tracking-tight text-gray-900 leading-none">DAPUR PEDAS</span>
+                <span className="text-[9px] font-extrabold text-red-600 tracking-[0.18em] uppercase">Mama Zio</span>
+              </div>
             </div>
-            <div className="flex flex-col leading-tight">
-              <span className="text-[14px] font-black tracking-tight text-gray-900 leading-none">DAPUR PEDAS</span>
-              <span className="text-[9px] font-extrabold text-red-600 tracking-[0.18em] uppercase">Mama Zio</span>
+            {/* Judul halaman — md+ */}
+            <div className="hidden md:block">
+              <h2 className="text-[17px] font-bold text-gray-900 leading-tight">
+                {activeTab === 'dashboard' ? 'Dashboard Utama' : activeTab === 'pos' ? 'Sistem Kasir' : activeTab === 'purchase' ? 'Pencatatan Belanja' : activeTab === 'menu' ? 'Manajemen Menu' : 'Buku Jurnal Keuangan'}
+              </h2>
+              <p className="text-[11px] text-gray-400 font-medium capitalize leading-none mt-0.5">{formattedDate}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Tanggal & Jam — sembunyikan di portrait mobile, tampil di landscape & sm+ */}
-            <div className="hidden sm:flex landscape:flex flex-col items-end leading-tight">
-              <span className="text-[10px] lg:text-[11px] font-semibold text-gray-400 capitalize hidden lg:block">{formattedDate}</span>
-              <span className="text-sm lg:text-base font-black text-gray-800 tabular-nums tracking-tight">{formattedTime}</span>
+          {/* Kanan: Jam + Aksi */}
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="hidden landscape:flex md:flex flex-col items-end leading-tight">
+              <span className="text-base font-black text-gray-800 tabular-nums tracking-tight">{formattedTime}</span>
             </div>
-            <div className="h-8 w-px bg-gray-200"></div>
-            <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"><Bell size={20} /></button>
-            <button className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900">
-              <Store size={20} />
-              <span className="hidden md:block">Dapur Buka</span>
+            <div className="hidden md:block h-7 w-px bg-gray-200"></div>
+            <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors" title="Notifikasi">
+              <Bell size={20} />
+            </button>
+            <button className="hidden md:flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-3 py-2 rounded-xl transition-all">
+              <Store size={16} />
+              <span>Dapur Buka</span>
             </button>
           </div>
         </header>
