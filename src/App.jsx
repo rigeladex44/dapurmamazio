@@ -70,8 +70,8 @@ const POSView = ({ menus, cart, setCart, onCheckout }) => {
   const [checkoutModal, setCheckoutModal] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('Tunai');
-
   const [cashGiven, setCashGiven] = useState('');
+  const [cartOpen, setCartOpen] = useState(false);
 
   const categories = ['Semua', ...new Set(menus.map(m => m.category))];
   const filteredMenus = activeCategory === 'Semua' ? menus : menus.filter(m => m.category === activeCategory);
@@ -135,7 +135,8 @@ const POSView = ({ menus, cart, setCart, onCheckout }) => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 pb-20 md:pb-0 animate-in fade-in duration-300 items-start relative">
+    <>
+    <div className="flex flex-col md:flex-row gap-4 pb-24 md:pb-0 animate-in fade-in duration-300 items-start relative">
 
       {/* 1. Modal Pembayaran (Checkout) */}
       {checkoutModal && (
@@ -358,7 +359,8 @@ const POSView = ({ menus, cart, setCart, onCheckout }) => {
         </div>
       </div>
 
-      <div className="w-full md:w-[35%] lg:w-[30%] flex-shrink-0 md:sticky md:top-0">
+      {/* PANEL KANAN: Rincian Pesanan — HANYA tampil di tablet/desktop */}
+      <div className="hidden md:flex w-full md:w-[35%] lg:w-[30%] flex-shrink-0 md:sticky md:top-0 flex-col">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-[450px] md:h-[calc(100vh-8rem)] overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
             <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -366,7 +368,6 @@ const POSView = ({ menus, cart, setCart, onCheckout }) => {
             </h2>
             <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-md">{totalItems} Item</span>
           </div>
-
           <div className="flex-1 overflow-y-auto p-0 bg-white">
             {cart.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-2 p-6 text-center">
@@ -394,7 +395,6 @@ const POSView = ({ menus, cart, setCart, onCheckout }) => {
               </div>
             )}
           </div>
-
           <div className="p-4 bg-gray-50 border-t border-gray-200 shrink-0">
             <div className="flex justify-between items-center mb-3">
               <span className="text-gray-500 font-semibold text-xs">Total Tagihan</span>
@@ -411,6 +411,103 @@ const POSView = ({ menus, cart, setCart, onCheckout }) => {
         </div>
       </div>
     </div>
+
+    {/* ===== FLOATING CART BUTTON — mobile only (sembunyikan di md+) ===== */}
+    <div className="md:hidden">
+
+      {/* Tombol FAB Keranjang */}
+      <button
+        onClick={() => setCartOpen(o => !o)}
+        className="fixed bottom-5 right-5 z-40 w-14 h-14 bg-red-700 hover:bg-red-800 active:scale-95 text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-200"
+        aria-label="Buka keranjang"
+      >
+        <ShoppingCart size={22} />
+        {totalItems > 0 && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-red-700 text-[10px] font-black rounded-full flex items-center justify-center shadow border border-red-100">
+            {totalItems > 9 ? '9+' : totalItems}
+          </span>
+        )}
+      </button>
+
+      {/* Overlay gelap saat cart terbuka */}
+      {cartOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 backdrop-blur-[2px] animate-in fade-in duration-200"
+          onClick={() => setCartOpen(false)}
+        />
+      )}
+
+      {/* Cart Sheet dari bawah */}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+          cartOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
+        style={{ maxHeight: '80vh' }}
+      >
+        {/* Handle drag indicator */}
+        <div className="flex justify-center pt-2.5 pb-1 shrink-0">
+          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+        </div>
+
+        {/* Header Sheet */}
+        <div className="px-4 pb-3 pt-1 border-b border-gray-100 flex items-center justify-between shrink-0">
+          <h2 className="font-bold text-gray-900 flex items-center gap-2 text-sm">
+            <ShoppingCart className="text-red-700" size={16} /> Rincian Pesanan
+          </h2>
+          <div className="flex items-center gap-2">
+            <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-md">{totalItems} Item</span>
+            <button onClick={() => setCartOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Daftar Item Cart */}
+        <div className="flex-1 overflow-y-auto">
+          {cart.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-gray-400 gap-2">
+              <PackageSearch size={36} className="opacity-20" />
+              <p className="text-xs font-medium">Belum ada menu dipilih.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {cart.map(item => (
+                <div key={item.id} className="px-4 py-3 flex flex-col gap-1.5">
+                  <div className="flex justify-between items-start gap-2">
+                    <h4 className="font-semibold text-gray-800 text-sm leading-tight">{item.name}</h4>
+                    <p className="text-gray-900 font-bold text-sm whitespace-nowrap">Rp {(item.price * item.qty).toLocaleString('id-ID')}</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] text-gray-400 font-medium">@ Rp {item.price.toLocaleString('id-ID')}</p>
+                    <div className="flex items-center gap-1.5 bg-white rounded-lg border border-gray-200 shadow-sm p-0.5">
+                      <button onClick={() => updateQty(item.id, -1)} className="text-gray-500 hover:bg-gray-100 hover:text-red-600 p-1.5 rounded transition-colors"><Minus size={13} /></button>
+                      <span className="font-bold text-gray-800 text-sm w-7 text-center">{item.qty}</span>
+                      <button onClick={() => updateQty(item.id, 1)} className="text-gray-500 hover:bg-gray-100 hover:text-green-600 p-1.5 rounded transition-colors"><Plus size={13} /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer Bayar */}
+        <div className="p-4 border-t border-gray-100 bg-gray-50 shrink-0">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-gray-500 font-semibold text-sm">Total Tagihan</span>
+            <span className="text-2xl font-black text-gray-900">Rp {total.toLocaleString('id-ID')}</span>
+          </div>
+          <button
+            onClick={() => { setCartOpen(false); setCheckoutModal(true); }}
+            disabled={cart.length === 0}
+            className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3.5 rounded-xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-[0.98] transition-all flex justify-center items-center gap-2"
+          >
+            <Receipt size={18} /> Proses Pembayaran
+          </button>
+        </div>
+      </div>
+    </div>
+    </>
   );
 };
 
