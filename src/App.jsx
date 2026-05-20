@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { supabase } from './supabase';
 import {
   LayoutDashboard,
   UtensilsCrossed,
@@ -38,7 +39,7 @@ const getInitials = (name) => {
 };
 
 // ==========================================
-// DATA DUMMY AWAL
+// KONSTANTA
 // ==========================================
 const PURCHASE_CATEGORIES = [
   'Bahan Baku',
@@ -47,30 +48,6 @@ const PURCHASE_CATEGORIES = [
   'Operasional (Listrik/Gas)',
   'Lain-lain'
 ];
-
-const INITIAL_MENUS = [
-  { id: 'm1', name: 'Dimsum Ayam', price: 12000, category: 'Dimsum', color: 'bg-rose-500', image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=300&q=80' },
-  { id: 'm2', name: 'Udang Keju', price: 12000, category: 'Dimsum', color: 'bg-amber-500', image: '' },
-  { id: 'm3', name: 'Gyoza', price: 12000, category: 'Dimsum', color: 'bg-orange-500', image: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?auto=format&fit=crop&w=300&q=80' },
-  { id: 'm4', name: 'Dimsum Mentai', price: 13000, category: 'Dimsum', color: 'bg-rose-600', image: '' },
-  { id: 'm5', name: 'Dimsum Bakar', price: 13000, category: 'Dimsum', color: 'bg-amber-600', image: '' },
-  { id: 'm6', name: 'Dimsum Kuah Creamy', price: 13000, category: 'Dimsum', color: 'bg-yellow-500', image: '' },
-  { id: 'm7', name: 'Mie Level', price: 10000, category: 'Makanan', color: 'bg-red-600', image: '' },
-  { id: 'm8', name: 'Mie Jebew', price: 10000, category: 'Makanan', color: 'bg-red-700', image: '' },
-  { id: 'm9', name: 'Basreng Chili Oil', price: 10000, category: 'Cemilan Gurih', color: 'bg-orange-600', image: '' },
-  { id: 'm10', name: 'Tempura Kocek', price: 12000, category: 'Cemilan Gurih', color: 'bg-red-500', image: '' },
-  { id: 'm11', name: 'Pentol Oseng', price: 12000, category: 'Cemilan Gurih', color: 'bg-rose-700', image: '' },
-  { id: 'm12', name: 'Ceker Pedas', price: 10000, category: 'Cemilan Gurih', color: 'bg-red-800', image: '' },
-  { id: 'm13', name: 'Tela Tela', price: 5000, category: 'Cemilan Gurih', color: 'bg-yellow-600', image: '' },
-  { id: 'm14', name: 'Cordog Moza', price: 5000, category: 'Cemilan Gurih', color: 'bg-amber-700', image: '' },
-  { id: 'm15', name: 'Cordog Sosis', price: 5000, category: 'Cemilan Gurih', color: 'bg-orange-700', image: '' },
-  { id: 'm16', name: 'Piscok', price: 10000, category: 'Cemilan Manis', color: 'bg-amber-800', image: '' },
-  { id: 'm17', name: 'Pis Roll', price: 10000, category: 'Cemilan Manis', color: 'bg-yellow-700', image: '' },
-  { id: 'm18', name: 'Pop Ice', price: 2000, category: 'Minuman', color: 'bg-blue-500', image: '' },
-  { id: 'm19', name: 'Teh Sisir', price: 1000, category: 'Minuman', color: 'bg-green-600', image: '' }
-];
-
-const INITIAL_FINANCES = [];
 
 // ==========================================
 // KOMPONEN TOAST (Notifikasi)
@@ -1092,60 +1069,148 @@ const DashboardView = ({ finances, setActiveTab }) => {
 // ==========================================
 export default function App() {
   const [activeTab, setActiveTab] = useState('pos');
-
-  const [menus, setMenus] = useState(INITIAL_MENUS);
-  const [finances, setFinances] = useState(INITIAL_FINANCES);
+  const [menus, setMenus] = useState([]);
+  const [finances, setFinances] = useState([]);
   const [cart, setCart] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // ── Jam real-time ──────────────────────────────
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
   const formattedTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const formattedDate = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
+  // ── Toast ──────────────────────────────────────
   const [toast, setToast] = useState({ message: '', type: '' });
-  const showToast = (message, type = 'success') => {
+  const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast({ message: '', type: '' }), 3000);
-  };
+  }, []);
 
-  const handleCheckout = (totalAmount, cartDetails, paymentMethod) => {
-    const newTransaction = {
-      id: `trx-${Date.now()}`,
-      date: new Date().toISOString(),
-      type: 'income',
-      category: 'Penjualan POS',
-      amount: totalAmount,
-      note: cartDetails.map(c => `${c.name} (${c.qty})`).join(', '),
-      paymentMethod: paymentMethod
+  // ── Fetch data dari Supabase ───────────────────
+  const fetchMenus = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('menus')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (!error) setMenus(data);
+  }, []);
+
+  const fetchFinances = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .order('date', { ascending: true });
+    if (!error) setFinances(data);
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([fetchMenus(), fetchFinances()]);
+      setLoading(false);
     };
-    setFinances(prev => [...prev, newTransaction]);
-    showToast(`Pembayaran ${paymentMethod} sukses dicatat ke jurnal.`, 'success');
-  };
+    init();
+  }, [fetchMenus, fetchFinances]);
 
-  const handleRecordPurchase = (category, note, amount) => {
-    setFinances(prev => [...prev, {
-      id: `exp-${Date.now()}`,
-      date: new Date().toISOString(),
-      type: 'expense',
-      category: category,
-      amount: amount,
-      note: note
-    }]);
-    showToast(`Berhasil mencatat pengeluaran untuk ${category}`, 'success');
-  };
+  // ── Handler: Checkout POS → insert ke Supabase ─
+  const handleCheckout = useCallback(async (totalAmount, cartDetails, paymentMethod) => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert([{
+        type: 'income',
+        category: 'Penjualan POS',
+        amount: totalAmount,
+        note: cartDetails.map(c => `${c.name} (${c.qty})`).join(', '),
+        payment_method: paymentMethod,
+        date: new Date().toISOString()
+      }])
+      .select()
+      .single();
+    if (error) { showToast('Gagal menyimpan transaksi!', 'error'); return; }
+    setFinances(prev => [...prev, data]);
+    showToast(`Pembayaran ${paymentMethod} sukses dicatat.`, 'success');
+  }, [showToast]);
 
-  const handleEditTransaction = (updatedTrx) => {
-    setFinances(prev => prev.map(trx =>
-      trx.id === updatedTrx.id
-        ? { ...trx, ...updatedTrx }
-        : trx
-    ));
+  // ── Handler: Catat Belanja → insert ke Supabase ─
+  const handleRecordPurchase = useCallback(async (category, note, amount) => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert([{
+        type: 'expense',
+        category,
+        amount,
+        note,
+        date: new Date().toISOString()
+      }])
+      .select()
+      .single();
+    if (error) { showToast('Gagal menyimpan pengeluaran!', 'error'); return; }
+    setFinances(prev => [...prev, data]);
+    showToast(`Pengeluaran ${category} berhasil dicatat.`, 'success');
+  }, [showToast]);
+
+  // ── Handler: Edit Transaksi → update ke Supabase ─
+  const handleEditTransaction = useCallback(async (updatedTrx) => {
+    const { error } = await supabase
+      .from('transactions')
+      .update({
+        type: updatedTrx.type,
+        category: updatedTrx.category,
+        note: updatedTrx.note,
+        amount: updatedTrx.amount,
+        payment_method: updatedTrx.paymentMethod
+      })
+      .eq('id', updatedTrx.id);
+    if (error) { showToast('Gagal memperbarui transaksi!', 'error'); return; }
+    setFinances(prev => prev.map(t => t.id === updatedTrx.id ? { ...t, ...updatedTrx } : t));
     showToast('Transaksi berhasil diperbarui.', 'success');
-  };
+  }, [showToast]);
+
+  // ── Handler: Manajemen Menu → CRUD ke Supabase ─
+  const handleMenuChange = useCallback(async (action, payload) => {
+    if (action === 'add') {
+      const { data, error } = await supabase.from('menus').insert([payload]).select().single();
+      if (error) { showToast('Gagal menambah menu!', 'error'); return null; }
+      setMenus(prev => [...prev, data]);
+      showToast('Menu baru berhasil ditambahkan!', 'success');
+      return data;
+    }
+    if (action === 'edit') {
+      const { error } = await supabase.from('menus').update(payload).eq('id', payload.id);
+      if (error) { showToast('Gagal memperbarui menu!', 'error'); return; }
+      setMenus(prev => prev.map(m => m.id === payload.id ? { ...m, ...payload } : m));
+      showToast('Menu berhasil diperbarui!', 'success');
+    }
+    if (action === 'delete') {
+      const { error } = await supabase.from('menus').delete().eq('id', payload);
+      if (error) { showToast('Gagal menghapus menu!', 'error'); return; }
+      setMenus(prev => prev.filter(m => m.id !== payload));
+      showToast('Menu berhasil dihapus!', 'success');
+    }
+  }, [showToast]);
+
+  // ── Tampilkan loading screen ───────────────────
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 flex-col gap-4">
+        <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+          <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <p className="font-black text-gray-900 text-lg">DAPUR PEDAS MAMA ZIO</p>
+          <div className="flex gap-1.5">
+            <span className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{animationDelay:'0ms'}} />
+            <span className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{animationDelay:'150ms'}} />
+            <span className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{animationDelay:'300ms'}} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -1153,7 +1218,7 @@ export default function App() {
       case 'pos': return <POSView menus={menus} cart={cart} setCart={setCart} onCheckout={handleCheckout} />;
       case 'purchase': return <PurchaseView finances={finances} onRecordPurchase={handleRecordPurchase} />;
       case 'finance': return <FinanceView finances={finances} onEditTransaction={handleEditTransaction} />;
-      case 'menu': return <MenuView menus={menus} setMenus={setMenus} showToast={showToast} />;
+      case 'menu': return <MenuView menus={menus} onMenuChange={handleMenuChange} showToast={showToast} />;
       default: return <div>Memuat...</div>;
     }
   };
