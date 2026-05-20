@@ -7,5 +7,9 @@ export default {
     theme: {
         extend: {},
     },
-    plugins: [],
+    plugins: [
+        ({ addVariant }) => {
+            addVariant('landscape', '@media (orientation: landscape)');
+        }
+    ],
 }

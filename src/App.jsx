@@ -698,10 +698,11 @@ const FinanceView = ({ finances, onEditTransaction }) => {
 // ==========================================
 // VIEW: MANAJEMEN MENU
 // ==========================================
-const MenuView = ({ menus, setMenus, showToast }) => {
+const MenuView = ({ menus, onMenuChange, showToast }) => {
   const [formData, setFormData] = useState({ id: '', name: '', price: '', category: '', color: 'bg-red-700', image: '' });
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef(null);
 
   const colors = [
@@ -715,34 +716,30 @@ const MenuView = ({ menus, setMenus, showToast }) => {
     { label: 'Biru', value: 'bg-blue-500' },
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.price || !formData.category) return;
-
+    setSubmitting(true);
+    const payload = { ...formData, price: parseFloat(formData.price) };
     if (isEditing) {
-      setMenus(prev => prev.map(m => m.id === formData.id ? { ...formData, price: parseFloat(formData.price) } : m));
-      showToast('Menu berhasil diperbarui!', 'success');
+      await onMenuChange('edit', payload);
     } else {
-      const newMenu = {
-        ...formData,
-        id: `m${Date.now()}`,
-        price: parseFloat(formData.price)
-      };
-      setMenus(prev => [...prev, newMenu]);
-      showToast('Menu baru berhasil ditambahkan!', 'success');
+      // Hapus id agar Supabase yang generate uuid
+      const { id: _unused, ...newPayload } = payload;
+      await onMenuChange('add', newPayload);
     }
+    setSubmitting(false);
     handleCancel();
   };
 
   const handleEdit = (menu) => {
-    setFormData(menu);
+    setFormData({ ...menu, price: String(menu.price) });
     setIsEditing(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Yakin ingin menghapus menu ini? \n(Disarankan hanya menghapus menu yang tidak pernah terjual. Untuk menu lama lebih baik diedit/dinonaktifkan jika ada fiturnya nanti)')) {
-      setMenus(prev => prev.filter(m => m.id !== id));
-      showToast('Menu berhasil dihapus!', 'success');
+  const handleDelete = async (id) => {
+    if (window.confirm('Yakin ingin menghapus menu ini?')) {
+      await onMenuChange('delete', id);
     }
   };
 
@@ -923,9 +920,9 @@ const MenuView = ({ menus, setMenus, showToast }) => {
           </div>
 
           <div className="p-4 bg-gray-50 border-t border-gray-200 shrink-0 flex flex-col gap-2">
-            <button type="submit" className="w-full bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-lg shadow-sm transform active:scale-[0.98] transition-all flex justify-center items-center gap-2 text-sm">
-              {isEditing ? <CheckCircle2 size={16} /> : <Plus size={16} />}
-              {isEditing ? 'Simpan Perubahan' : 'Tambah Menu'}
+            <button type="submit" disabled={submitting} className="w-full bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-lg shadow-sm transform active:scale-[0.98] transition-all flex justify-center items-center gap-2 text-sm disabled:opacity-60">
+              {submitting ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : isEditing ? <CheckCircle2 size={16} /> : <Plus size={16} />}
+              {submitting ? 'Menyimpan...' : isEditing ? 'Simpan Perubahan' : 'Tambah Menu'}
             </button>
             {isEditing && (
               <button type="button" onClick={handleCancel} className="w-full bg-white border border-gray-300 text-gray-700 font-bold py-2.5 rounded-lg hover:bg-gray-100 transition-all text-sm">
@@ -1225,13 +1222,12 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-gray-800 selection:bg-red-200">
-      <div className="w-20 lg:w-64 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 z-20">
+      <div className="w-16 sm:w-20 landscape:w-20 lg:w-64 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 z-20">
 
         {/* BRAND & LOGO SIDEBAR */}
-        <div className="h-24 flex items-center justify-center lg:justify-start lg:px-5 border-b border-gray-100">
-          <div className="flex items-center gap-3.5 w-full">
-            {/* Logo: besar di desktop, tetap proporsional di mobile */}
-            <div className="w-12 h-12 lg:w-14 lg:h-14 bg-white rounded-xl flex items-center justify-center shadow border border-gray-100 overflow-hidden shrink-0">
+        <div className="h-16 landscape:h-14 lg:h-24 flex items-center justify-center lg:justify-start lg:px-5 border-b border-gray-100">
+          <div className="flex items-center gap-3 w-full">
+            <div className="w-9 h-9 landscape:w-8 landscape:h-8 lg:w-14 lg:h-14 bg-white rounded-xl flex items-center justify-center shadow border border-gray-100 overflow-hidden shrink-0">
               <img
                 src="/logo.png"
                 alt="Logo Mama Zio"
@@ -1242,7 +1238,6 @@ export default function App() {
                 }}
               />
             </div>
-            {/* Nama brand: hanya tampil di sidebar lebar (lg) */}
             <div className="hidden lg:flex flex-col overflow-hidden">
               <h1 className="font-black text-[17px] tracking-tight leading-tight text-gray-900">DAPUR PEDAS</h1>
               <p className="text-[11px] text-red-600 font-extrabold tracking-[0.2em] uppercase">Mama Zio</p>
@@ -1250,7 +1245,7 @@ export default function App() {
           </div>
         </div>
 
-        <nav className="flex-1 py-6 px-3 lg:px-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 py-3 landscape:py-2 lg:py-6 px-2 lg:px-4 space-y-0.5 lg:space-y-1 overflow-y-auto">
           <p className="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 hidden lg:block">Menu Utama</p>
           {[
             { id: 'dashboard', icon: Home, label: 'Dashboard' },
@@ -1262,11 +1257,11 @@ export default function App() {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors font-medium text-sm ${activeTab === item.id ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              className={`w-full flex items-center gap-3 p-2 landscape:p-1.5 lg:p-3 rounded-lg transition-colors font-medium text-sm ${activeTab === item.id ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
             >
-              <item.icon size={20} className={activeTab === item.id ? 'text-red-600' : 'text-gray-400'} />
-              <span className="hidden lg:block">{item.label}</span>
+              <item.icon size={18} className={`shrink-0 ${activeTab === item.id ? 'text-red-600' : 'text-gray-400'}`} />
+              <span className="hidden lg:block text-sm">{item.label}</span>
             </button>
           ))}
         </nav>
@@ -1285,14 +1280,14 @@ export default function App() {
       </div>
 
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-        <header className="h-24 bg-white border-b border-gray-200 flex items-center justify-between px-6 lg:px-8 z-10 sticky top-0">
-          <h2 className="text-xl font-bold text-gray-800 capitalize hidden sm:block">
+        <header className="h-16 landscape:h-12 lg:h-24 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 z-10 sticky top-0">
+          <h2 className="text-base lg:text-xl font-bold text-gray-800 capitalize hidden sm:block landscape:block">
             {activeTab === 'dashboard' ? 'Dashboard Utama' : activeTab === 'pos' ? 'Sistem Kasir' : activeTab === 'purchase' ? 'Pencatatan Belanja' : activeTab === 'menu' ? 'Manajemen Menu' : 'Buku Jurnal Keuangan'}
           </h2>
 
-          {/* LOGO & NAMA BRAND — tampil di mobile (sidebar tersembunyi) */}
-          <div className="flex items-center gap-3 sm:hidden">
-            <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow border border-gray-100 overflow-hidden shrink-0">
+          {/* LOGO & NAMA BRAND — hanya tampil di portrait mobile (sidebar tersembunyi) */}
+          <div className="flex items-center gap-2 sm:hidden landscape:hidden">
+            <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow border border-gray-100 overflow-hidden shrink-0">
               <img
                 src="/logo.png"
                 alt="Logo"
@@ -1304,16 +1299,16 @@ export default function App() {
               />
             </div>
             <div className="flex flex-col leading-tight">
-              <span className="text-[15px] font-black tracking-tight text-gray-900 leading-none">DAPUR PEDAS</span>
-              <span className="text-[10px] font-extrabold text-red-600 tracking-[0.18em] uppercase">Mama Zio</span>
+              <span className="text-[14px] font-black tracking-tight text-gray-900 leading-none">DAPUR PEDAS</span>
+              <span className="text-[9px] font-extrabold text-red-600 tracking-[0.18em] uppercase">Mama Zio</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Tanggal & Jam */}
-            <div className="hidden sm:flex flex-col items-end leading-tight">
-              <span className="text-[11px] font-semibold text-gray-400 capitalize">{formattedDate}</span>
-              <span className="text-base font-black text-gray-800 tabular-nums tracking-tight">{formattedTime}</span>
+            {/* Tanggal & Jam — sembunyikan di portrait mobile, tampil di landscape & sm+ */}
+            <div className="hidden sm:flex landscape:flex flex-col items-end leading-tight">
+              <span className="text-[10px] lg:text-[11px] font-semibold text-gray-400 capitalize hidden lg:block">{formattedDate}</span>
+              <span className="text-sm lg:text-base font-black text-gray-800 tabular-nums tracking-tight">{formattedTime}</span>
             </div>
             <div className="h-8 w-px bg-gray-200"></div>
             <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"><Bell size={20} /></button>
